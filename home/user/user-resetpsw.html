@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../../assets/lib/layui/css/layui.css">
+    <style>
+        body {
+            padding: 15px;
+            background-color: #f2f3f5;
+        }
+        .layui-form-item {
+            width: 600px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layui-card">
+        <div class="layui-card-header">修改密码</div>
+        <div class="layui-card-body">
+
+            <form class="layui-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">原密码</label>
+                    <div class="layui-input-block">
+                        <input type="password" name="oldPwd" required lay-verify="required|password" placeholder="请输入原密码"
+                            autocomplete="off" class="layui-input" id="oldpsw">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">新密码</label>
+                    <div class="layui-input-block">
+                        <input type="password" name="newPwd" required lay-verify="required|password|newPassword" placeholder="请输入新密码"
+                            autocomplete="off" class="layui-input" id="newpsw">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">确认新密码</label>
+                    <div class="layui-input-block">
+                        <input type="password" required lay-verify="required|compare" placeholder="请输入确认新密码"
+                            autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                      <button class="layui-btn" lay-submit lay-filter="*">立即提交</button>
+                      <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                    </div>
+                  </div>
+            </form>
+
+        </div>
+    </div>
+
+    <script src="../../assets/lib/jquery.js"></script>
+    <script src="../../assets/lib/layui/layui.js"></script>
+    <script>
+        //设置前提
+        $.ajaxPrefilter(function (options) {
+            options.url = "http://api-breakingnews-web.itheima.net" + options.url;
+            // 在每次请求之前 把url换成根路径加上绝对路径
+            if (options.url.indexOf("/my/") != -1) {
+                //不返回-1就是找到了
+                options.headers = {
+                    //设置键和值
+                    Authorization: localStorage.getItem("token"),
+                }
+            }
+            options.complete = function (result) {
+                // 每次发送请求都会调用
+                if (result.responseJSON.status == 1) {
+                    location.href = "./login.html";
+                }
+            }
+        });
+        let layer = layui.layer;
+        let form = layui.form;
+        form.verify({
+            password: [/^[\S]{6,12}$/, '密码必须6到12位，且不能出现空格'],
+            newPassword: function(value) {
+                if ($("#oldpsw").val() == value) {
+                    return "原密码不能于新密码相同"
+                }
+            },
+            compare: function(value) {
+                if ($("#newpsw").val() != value) {
+                    return "确认密码必须和新密码相同"
+                }
+            },
+        });
+        $("form").submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                type: "POST",
+                url: "/my/updatepwd",
+                data: $(this).serialize(),
+                success: (result) => {
+                    if (result.status == 1) return layer.msg(result.message)
+                    layer.msg(result.message);
+                    $("form")[0].reset();
+                }
+            })
+        })
+    </script>
+</body>
+
+</html>

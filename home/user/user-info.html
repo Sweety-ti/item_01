@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../../assets/lib/layui/css/layui.css">
+    <style>
+        body {
+            padding: 15px;
+            background-color: #f2f3f5;
+        }
+
+        .layui-form-item {
+            width: 600px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layui-card">
+        <div class="layui-card-header">修改用户信息</div>
+        <div class="layui-card-body">
+
+            <form class="layui-form" id="form" lay-filter="form">
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">登录名称：</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="username" required lay-verify="required" placeholder="请输入登录名称"
+                            autocomplete="off" class="layui-input"  readonly="true">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">用户名称：</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="nickname" required lay-verify="required|username" placeholder="请输入用户名称"
+                            autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">用户邮箱：</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="email" required lay-verify="required|email" placeholder="请输入用户邮箱"
+                            autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn" lay-submit lay-filter="formDemo">立即修改</button>
+                        <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                    </div>
+                </div>
+                <input type="hidden" name="id">
+            </form>
+        </div>
+    </div>
+    <script src="../../assets/lib/jquery.js"></script>
+    <script src="../../assets/lib/layui/layui.js"></script>
+    <script>
+        //设置前提
+        $.ajaxPrefilter(function (options) {
+            options.url = "http://api-breakingnews-web.itheima.net" + options.url;
+            // 在每次请求之前 把url换成根路径加上绝对路径
+            if (options.url.indexOf("/my/") != -1) {
+                //不返回-1就是找到了
+                options.headers = {
+                    //设置键和值
+                    Authorization: localStorage.getItem("token"),
+                }
+            }
+            options.complete = function (result) {
+                // 每次发送请求都会调用
+                if (result.responseJSON.status == 1) {
+                    location.href = "./login.html";
+                }
+            }
+        });
+        let form = layui.form;
+        form.verify({
+            username: [/[\S]{1,6}/, "名称必须为1到6位的非空字符"]
+        });
+        let layer = layui.layer;
+        function getInfo() {
+            $.ajax({
+                type: "GET",
+                url: "/my/userinfo",
+                success: (result) => {
+                    if (result.status == 1) return layer.msg("失败",result.message)
+                    form.val("form", result.data);// class="layui-form" 所在元素属性 lay-filter="" 对应的值 formInfo
+                }
+            })
+        };
+        getInfo();
+        $("#form").on("submit", function (e) {
+            e.preventDefault();
+            let formData = $(this).serialize();
+            $.ajax({
+                type: "POST",
+                url: "/my/userinfo",
+                data: formData,
+                success: (result) => {
+                    if(result.status == 1) return layer.msg(result.message)
+                    layer.msg(result.message);
+                    getInfo();
+                    window.top.getInfo();
+                }
+            })
+        })
+    </script>
+</body>
+
+</html>

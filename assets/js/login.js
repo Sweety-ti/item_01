@@ -52,8 +52,8 @@ $("#login").on("submit", function(event) {
             localStorage.setItem("token", result.token);//设置值
             layer.msg("登录成功，跳转页面中...");
             setTimeout(() => {
-                location.href = "/index.html";
-            }, 5000);
+                location.href = "./index.html";
+            }, 500);
         }
     })
 });
