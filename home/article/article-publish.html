@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../../assets/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="../../assets/lib/cropper/cropper.css">
+    <style>
+        body {
+            padding: 15px;
+            background-color: #f2f3f5;
+        }
+
+        /* 封面容器的样式 */
+        .cover-box {
+            display: flex;
+        }
+
+        /* 左侧裁剪区域的样式 */
+        .cover-left {
+            width: 400px;
+            height: 280px;
+            overflow: hidden;
+            margin-right: 20px;
+        }
+
+        /* 右侧盒子的样式 */
+        .cover-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 预览区域的样式 */
+        .img-preview {
+            width: 200px;
+            height: 140px;
+            background-color: #ccc;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layui-card">
+        <div class="layui-card-header">
+            <span>发表文章</span>
+        </div>
+        <div class="layui-card-body">
+
+            <form class="layui-form layui-form-pane" id="pub-form">
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">文章标题</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="title" required lay-verify="required" placeholder="请输入标题"
+                            autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">文章分类</label><!-- label显示的就是框里面的内容 -->
+                    <div class="layui-input-block">
+                        <!-- 使label和select或者其他表单元素在一行 如果是行内元素(button)可以不加也在同一行 -->
+                        <select name="cate_id" lay-verify="required" id="category">
+                        </select>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <!-- 左侧的 label -->
+                    <label class="layui-form-label">文章内容</label>
+                    <!-- 为富文本编辑器外部的容器设置高度 -->
+                    <div class="layui-input-block" style="height: 400px;">
+                        <!-- 重要：将来这个 textarea 会被初始化为富文本编辑器 -->
+                        <textarea name="content"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <!-- 左侧的 label -->
+                    <label class="layui-form-label">文章封面</label>
+                    <!-- 选择封面区域 -->
+                    <div class="layui-input-block cover-box">
+                        <!-- 左侧裁剪区域 -->
+                        <div class="cover-left">
+                            <img id="image" src="../../assets/images/636EC53E9B11F86962CC89C9A0E8CEC8.jpg"
+                                name="cover-img" />
+
+                        </div>
+                        <!-- 右侧预览区域和选择封面区域 -->
+                        <div class="cover-right">
+                            <!-- 预览的区域 -->
+                            <div class="img-preview"></div>
+                            <!-- 选择封面按钮 -->
+                            <button type="button" class="layui-btn layui-btn-danger" id="select">选择封面</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn" lay-submit id="pub">发布</button>
+                        <button lay-submit class="layui-btn layui-btn-primary" id="draft">存为草稿</button>
+                    </div>
+                </div>
+
+            </form><!-- form表单需要这个layui-form-pane类名才行 -->
+            <input type="file" id="file" style="display: none;" accept="image/png, image/jpeg">
+
+        </div>
+    </div>
+    <!-- 下拉框的模板 -->
+    <script type="text/html" id="tpl-select">
+        <option value="">请选择文章类别</option>
+        {{each data}}
+        <option value={{$value.Id}}>{{$value.name}}</option>
+        {{/each}}
+    </script>
+
+    <script src="../../assets/lib/jquery.js"></script>
+    <script src="../../assets/lib/layui/layui.js"></script>
+    <script src="../../assets/lib/template-web.js"></script>
+    <!-- 富文本 -->
+    <script src="../../assets/lib/tinymce/tinymce.min.js"></script>
+    <script src="../../assets/lib/tinymce/tinymce_setup.js"></script>
+
+
+    <script src="../../assets/lib/cropper/Cropper.js"></script>
+    <script src="../../assets/lib/cropper/jquery-cropper.js"></script>
+    <script>
+        //设置前提
+        $.ajaxPrefilter(function (options) {
+            options.url = "http://api-breakingnews-web.itheima.net" + options.url;
+            // 在每次请求之前 把url换成根路径加上绝对路径
+            if (options.url.indexOf("/my/") != -1) {
+                //不返回-1就是找到了
+                options.headers = {
+                    //设置键和值
+                    Authorization: localStorage.getItem("token"),
+                }
+            }
+            options.complete = function (result) {
+                // 每次发送请求都会调用
+                if (result.responseJSON.message == "身份认证失败！") {
+                    location.href = "../../login.html";
+                }
+            }
+        });
+        const layer = layui.layer;
+        const form = layui.form;
+        let status = "已发布";
+        $.ajax({
+            type: "GET",
+            url: "/my/article/cates",
+            success: (result) => {
+                if (result.status == 1) return layer.msg(result.status)
+                var htmlStr = template("tpl-select", result);
+                $("#category").html(htmlStr);
+                form.render();// 因为layui的机制 不用这个 模板加进去的不会刷新
+            }
+        })
+
+        // 初始化富文本编辑器
+        initEditor()
+
+        // 1. 初始化图片裁剪器
+        var $image = $('#image')
+
+        // 2. 裁剪选项
+        var options = {
+            aspectRatio: 1,
+            preview: '.img-preview'
+        }
+
+        // 3. 初始化裁剪区域
+        $image.cropper(options)
+        // 上传文件操作
+        $("#select").click(function () {
+            $("#file").click();
+        });
+        $("#file").change(function (e) {
+            var fileData = e.target.files[0];
+            var newImgURL = URL.createObjectURL(fileData);
+            $image.cropper('destroy').attr('src', newImgURL).cropper(options)
+        });// 销毁旧的裁剪区域 // 重新设置图片路径 // 重新初始化裁剪区域
+
+        // 把变量改为草稿
+        $("#draft").on("click", function () {
+            status = "草稿";
+        });
+        // 把变量改为已发布
+        $("#pub").on("click", function () {
+            status = "已发布";
+        });
+        $("#pub-form").on("submit", function (e) {
+            e.preventDefault();
+            if (tinyMCE.activeEditor.getContent().length <= 0) return layer.msg("请输入文章的内容") // 判断是否有文章内容
+            var fd = new FormData($(this)[0]);
+            fd.delete("content");// 因为获取不到 只能删除
+            fd.append("content", tinyMCE.activeEditor.getContent());
+            fd.append("state", status);// 添加状态
+            $image.cropper('getCroppedCanvas', { // 创建一个 Canvas 画布
+                width: 400,
+                height: 280
+            }).toBlob(function (blob) {// 将 Canvas 画布上的内容，转化为文件对象
+                // 得到文件对象后，进行后续的操作
+                fd.append("cover_img", blob);
+                $.ajax({
+                    type: "POST",
+                    url: "/my/article/add",
+                    data: fd,
+                    contentType: false,//不修改Content-Type属性 使用FormData默认的Content-Type值
+                    processData: false,//不对FormData中的数据进行url编码 而是将FormData数据原样发送到服务器
+                    success: (result) => {
+                        if (result.status == 1) return layer.msg(result.message)
+                        layer.msg(result.message);// 发表成功并且跳到文章列表页
+                        
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+
+</html>

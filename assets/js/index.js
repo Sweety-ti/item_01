@@ -11,7 +11,7 @@ $.ajaxPrefilter(function (options) {
     }
     options.complete = function(result) {
          // 每次发送请求都会调用
-        if (result.responseJSON.status == 1) {
+        if (result.responseJSON.message == "身份认证失败！") {
             location.href = "./login.html";
         }
      }

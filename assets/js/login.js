@@ -44,7 +44,7 @@ $("#login").on("submit", function(event) {
     $.ajax({
         type: "POST",
         url: "/api/login",
-        data: $(this).serialize(),
+        data: $("#login").serialize(),
         success: function(result) {
             if (result.status == 1) {
                 return layer.msg(result.message);
